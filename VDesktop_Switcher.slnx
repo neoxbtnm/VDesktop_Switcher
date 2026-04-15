@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="VDesktop_Switcher.vcxproj" Id="f5ae6f32-c375-432c-8674-79d8b8fd788a" />
+</Solution>
