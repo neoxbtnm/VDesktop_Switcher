@@ -1,47 +1,66 @@
 ﻿#include <windows.h>
-#include <iostream>
+#include <libloaderapi.h>
+
 
 typedef int (*GetCurrentDesktopNumberFn)();
 typedef void (*GoToDesktopNumberFn)(int);
+typedef void (*MoveWindowToDesktopNumberFn)(HWND, int);
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    HMODULE lib = LoadLibrary(L"virtual-desktop-accessor.dll");
+	HMODULE lib = LoadLibraryEx(L"virtual-desktop-accessor.dll", NULL, NULL);
 
-    if (!lib) {
-        return 1;
-    }
+	if (!lib) {
+		return 10;
+	}
 
-    auto GetCurrentDesktopNumber =
-        (GetCurrentDesktopNumberFn)GetProcAddress(lib, "GetCurrentDesktopNumber");
+	auto GetCurrentDesktopNumber =
+		(GetCurrentDesktopNumberFn)GetProcAddress(lib, "GetCurrentDesktopNumber");
 
-    auto GoToDesktopNumber =
-        (GoToDesktopNumberFn)GetProcAddress(lib, "GoToDesktopNumber");
+	auto GoToDesktopNumber =
+		(GoToDesktopNumberFn)GetProcAddress(lib, "GoToDesktopNumber");
 
-    if (!GetCurrentDesktopNumber || !GoToDesktopNumber) {
-        return 1;
-    }
+	auto MoveWindowToDesktopNumber =
+		(MoveWindowToDesktopNumberFn)GetProcAddress(lib, "MoveWindowToDesktopNumber");
 
-    // Alt + 1..9
-    for (int i = 1; i <= 9; i++) {
-        RegisterHotKey(NULL, i, MOD_ALT, '0' + i);
-    }
+	if (!GetCurrentDesktopNumber || !GoToDesktopNumber || !MoveWindowToDesktopNumber) {
+		return 100;
+	}
 
-    MSG msg = { 0 };
+	// Alt + 1..9 (id 1->9)
+	for (int i = 1; i <= 9; i++) {
+		RegisterHotKey(NULL, i, MOD_ALT, '0' + i);
+	}
 
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        if (msg.message == WM_HOTKEY) {
-            int desktop = msg.wParam; // ID = номер (1..9)
-            GoToDesktopNumber(desktop - 1); // обычно десктопы с 0
-        }
-    }
+	// Alt + Shift + 1..9 (id 101->109)
+	for (int i = 1; i <= 9; i++) {
+		RegisterHotKey(NULL, 100+i, MOD_ALT | MOD_SHIFT, '0' + i);
+	}
 
-    // cleanup
-    for (int i = 1; i <= 9; i++) {
-        UnregisterHotKey(NULL, i);
-    }
+	// Считывание клавиш
+	MSG msg = { 0 };
+	while (GetMessage(&msg, NULL, 0, 0)) {
+		if (msg.message == WM_HOTKEY) {
+			int id = msg.wParam; // ID = номер (1..9)
 
-    CoUninitialize();
-    FreeLibrary(lib);
+			if (id >= 1 && id <= 9) {
+				GoToDesktopNumber(id - 1); // обычно десктопы с 0
+			}
 
-    return 0;
+			else if (id >= 101 && id <= 109) {
+				HWND window = GetForegroundWindow();
+				if (window) {
+					MoveWindowToDesktopNumber(window, id - 101);
+					GoToDesktopNumber(id - 101);
+				}
+			}
+		}
+	}
+
+	// cleanup
+	for (int i = 1; i <= 9; i++) {
+		UnregisterHotKey(NULL, i);
+		UnregisterHotKey(NULL, i + 100);
+	}
+	FreeLibrary(lib);
+	return 0;
 }
