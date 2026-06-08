@@ -26,6 +26,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		return 100;
 	}
 
+	int DesktopNum = GetCurrentDesktopNumber();
+
 	// Alt + 1..9 (id 1->9)
 	for (int i = 1; i <= 9; i++) {
 		RegisterHotKey(NULL, i, MOD_ALT, '0' + i);
@@ -33,7 +35,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// Alt + Shift + 1..9 (id 101->109)
 	for (int i = 1; i <= 9; i++) {
-		RegisterHotKey(NULL, 100+i, MOD_ALT | MOD_SHIFT, '0' + i);
+		RegisterHotKey(NULL, 100 + i, MOD_ALT | MOD_SHIFT, '0' + i);
 	}
 
 	// Считывание клавиш
@@ -43,7 +45,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			int id = msg.wParam; // ID = номер (1..9)
 
 			if (id >= 1 && id <= 9) {
-				GoToDesktopNumber(id - 1); // обычно десктопы с 0
+
+				HWND oldWindow = GetForegroundWindow();
+
+				if (id - 1 != GetCurrentDesktopNumber()) { // проверка, что переключаешься на другой стол
+
+					GoToDesktopNumber(id - 1); // обычно десктопы с 0
+
+					Sleep(50);
+					HWND shell = GetShellWindow();
+					SetForegroundWindow(shell);
+				};
 			}
 
 			else if (id >= 101 && id <= 109) {
