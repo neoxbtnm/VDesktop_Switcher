@@ -1,5 +1,4 @@
 ﻿#include <windows.h>
-#include <libloaderapi.h>
 
 
 typedef int (*GetCurrentDesktopNumberFn)();
