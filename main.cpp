@@ -1,4 +1,5 @@
 ﻿#include <windows.h>
+#include <winuser.h>
 
 
 typedef int (*GetCurrentDesktopNumberFn)();
@@ -6,10 +7,15 @@ typedef void (*GoToDesktopNumberFn)(int);
 typedef void (*MoveWindowToDesktopNumberFn)(HWND, int);
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+	wchar_t path[32767];
 	HMODULE lib = LoadLibraryEx(L"virtual-desktop-accessor.dll", NULL, NULL);
 
-	if (!lib) {
-		return 10;
+	if (!lib) // Уведомление если нет библиотеки в PATH или папке программы
+	{
+		DWORD err = GetLastError();
+		GetEnvironmentVariableW(L"PATH", path, _countof(path));
+		MessageBoxW(NULL, path, L"virtual-desktop-accessor.dll not in PATH", MB_OK);
+		return 100;
 	}
 
 	auto GetCurrentDesktopNumber =
@@ -22,7 +28,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		(MoveWindowToDesktopNumberFn)GetProcAddress(lib, "MoveWindowToDesktopNumber");
 
 	if (!GetCurrentDesktopNumber || !GoToDesktopNumber || !MoveWindowToDesktopNumber) {
-		return 100;
+		return 101;
 	}
 
 	int DesktopNum = GetCurrentDesktopNumber();
@@ -36,6 +42,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	for (int i = 1; i <= 9; i++) {
 		RegisterHotKey(NULL, 100 + i, MOD_ALT | MOD_SHIFT, '0' + i);
 	}
+
+	RegisterHotKey(NULL, 11, MOD_ALT | MOD_CONTROL, 81); // ALT+CTRL+Q hotkey (id 11) Close Window
+	RegisterHotKey(NULL, 12, MOD_ALT | MOD_CONTROL | MOD_SHIFT, 81); // ALT+CTRL+Shift+Q hotkey (id 12) Terminate Window
 
 	// Считывание клавиш
 	MSG msg = { 0 };
@@ -57,6 +66,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				};
 			}
 
+			else if (id == 11 || id == 12) {
+				HWND hActiveWindow = GetForegroundWindow();
+				if (hActiveWindow) {
+					wchar_t title[256];
+					GetWindowTextW(hActiveWindow, title, 256);
+					//MessageBoxW(NULL, title, L"close window", MB_OK);
+					if (id == 11) {
+						PostMessageW(hActiveWindow, WM_CLOSE, 0, 0);
+					}
+					else if (id == 12) {
+						DWORD pid = 0;
+						GetWindowThreadProcessId(hActiveWindow, &pid);
+						if (pid || pid != 0) {
+							HANDLE hProcess = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+							if (hProcess) {
+								TerminateProcess(hProcess, 0);
+								CloseHandle(hProcess);
+							}
+						}
+					}
+				}
+			}
+
 			else if (id >= 101 && id <= 109) {
 				HWND window = GetForegroundWindow();
 				if (window) {
@@ -71,6 +103,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	for (int i = 1; i <= 9; i++) {
 		UnregisterHotKey(NULL, i);
 		UnregisterHotKey(NULL, i + 100);
+		UnregisterHotKey(NULL, 11);
 	}
 	FreeLibrary(lib);
 	return 0;
