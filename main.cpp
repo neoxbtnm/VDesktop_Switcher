@@ -1,5 +1,7 @@
 ﻿#include <windows.h>
 #include <winuser.h>
+#include "conf.h"
+#include <nlohmann/json.hpp>
 
 
 typedef int (*GetCurrentDesktopNumberFn)();
@@ -31,20 +33,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		return 101;
 	}
 
-	int DesktopNum = GetCurrentDesktopNumber();
+	int DesktopNum = GetCurrentDesktopNumber();  // Запоминаем текущий стол
+
+	using json = nlohmann::json;
+	json config_parsed = config("config.json"); // Читаем конфиг биндов
 
 	// Alt + 1..9 (id 1->9)
 	for (int i = 1; i <= 9; i++) {
-		RegisterHotKey(NULL, i, MOD_ALT, '0' + i);
+		RegisterHotKey(NULL, i, config_parsed["swap desktops"]["modifiers"], '0' + i);
 	}
 
 	// Alt + Shift + 1..9 (id 101->109)
 	for (int i = 1; i <= 9; i++) {
-		RegisterHotKey(NULL, 100 + i, MOD_ALT | MOD_SHIFT, '0' + i);
+		RegisterHotKey(NULL, 100 + i, config_parsed["swap window to desktop"]["modifiers"], '0' + i);
 	}
 
-	RegisterHotKey(NULL, 11, MOD_ALT | MOD_CONTROL, 81); // ALT+CTRL+Q hotkey (id 11) Close Window
-	RegisterHotKey(NULL, 12, MOD_ALT | MOD_CONTROL | MOD_SHIFT, 81); // ALT+CTRL+Shift+Q hotkey (id 12) Terminate Window
+	// ALT+CTRL+Q hotkey (id 11) Close Window
+	RegisterHotKey(NULL, 11, config_parsed["close window"]["modifiers"], config_parsed["close window"]["button"]);
+
+
+	// ALT+CTRL+Shift+Q hotkey (id 12) Terminate Window
+	RegisterHotKey(NULL, 12, config_parsed["terminate window"]["modifiers"], config_parsed["terminate window"]["button"]);
 
 	// Считывание клавиш
 	MSG msg = { 0 };
@@ -104,6 +113,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		UnregisterHotKey(NULL, i);
 		UnregisterHotKey(NULL, i + 100);
 		UnregisterHotKey(NULL, 11);
+		UnregisterHotKey(NULL, 12);
 	}
 	FreeLibrary(lib);
 	return 0;
