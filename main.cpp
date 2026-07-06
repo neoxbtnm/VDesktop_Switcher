@@ -49,11 +49,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	}
 
 	// ALT+CTRL+Q hotkey (id 11) Close Window
-	RegisterHotKey(NULL, 11, config_parsed["close window"]["modifiers"], config_parsed["close window"]["button"]);
+	RegisterHotKey(NULL, 11, config_parsed["close window"]["modifiers"], config_parsed["close window"]["key"]);
 
 
 	// ALT+CTRL+Shift+Q hotkey (id 12) Terminate Window
-	RegisterHotKey(NULL, 12, config_parsed["terminate window"]["modifiers"], config_parsed["terminate window"]["button"]);
+	RegisterHotKey(NULL, 12, config_parsed["terminate window"]["modifiers"], config_parsed["terminate window"]["key"]);
 
 	// Считывание клавиш
 	MSG msg = { 0 };
