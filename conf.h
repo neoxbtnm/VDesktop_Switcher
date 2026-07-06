@@ -40,6 +40,38 @@ const std::unordered_map<std::string, UINT> keyMap = {
 		{"Z", 90}
 };
 
+std::vector<std::string> SerializeModifiers(UINT mods)
+{
+	std::vector<std::string> result;
+
+	if (mods & MOD_ALT)
+		result.push_back("ALT");
+
+	if (mods & MOD_CONTROL)
+		result.push_back("CTRL");
+
+	if (mods & MOD_SHIFT)
+		result.push_back("SHIFT");
+
+	if (mods & MOD_WIN)
+		result.push_back("WIN");
+
+	return result;
+}
+
+std::string SerializeKey(UINT vk)
+{
+	if (vk >= 'A' && vk <= 'Z')
+		return std::string(1, static_cast<char>(vk));
+
+	switch (vk)
+	{
+		// case VK_SPACE:  return "SPACE"; подсказка для будущих обновлений
+	}
+
+	return std::to_string(vk); // запасной вариант
+}
+
 UINT ParseModifiers(const nlohmann::json& mods)
 {
 	UINT result = 0;
@@ -60,7 +92,7 @@ UINT ParseKey(const std::string& name)
 
 	if (it == keyMap.end())
 		throw;
-		//throw MessageBoxW(NULL, L"Error", L"Unknown key", MB_OK);
+	//throw MessageBoxW(NULL, L"Error", L"Unknown key", MB_OK);
 
 	return it->second;
 }
@@ -97,7 +129,7 @@ json config(std::string filename) {
 			recreate_conf = true;
 		}
 		if (!config_in["swap desktops"].contains("modifiers")) {
-			config_out["swap desktops"]["modifiers"] = 1;
+			config_out["swap desktops"]["modifiers"] = SerializeModifiers(1);
 			recreate_conf = true;
 		}
 
@@ -106,7 +138,7 @@ json config(std::string filename) {
 			recreate_conf = true;
 		}
 		if (!config_in["swap window to desktop"].contains("modifiers")) {
-			config_out["swap window to desktop"]["modifiers"] = 5;
+			config_out["swap window to desktop"]["modifiers"] = SerializeModifiers(5);
 			recreate_conf = true;
 		}
 
@@ -115,11 +147,11 @@ json config(std::string filename) {
 			recreate_conf = true;
 		}
 		if (!config_in["close window"].contains("modifiers")) {
-			config_out["close window"]["modifiers"] = 5;
+			config_out["close window"]["modifiers"] = SerializeModifiers(5);
 			recreate_conf = true;
 		}
 		if (!config_in["close window"].contains("key")) {
-			config_out["close window"]["key"] = 81; // 81 == Q
+			config_out["close window"]["key"] = SerializeKey(81); // 81 == Q
 			recreate_conf = true;
 		}
 
@@ -128,47 +160,13 @@ json config(std::string filename) {
 			recreate_conf = true;
 		}
 		if (!config_in["terminate window"].contains("modifiers")) {
-			config_out["terminate window"]["modifiers"] = 7;
+			config_out["terminate window"]["modifiers"] = SerializeModifiers(7);
 			recreate_conf = true;
 		}
 		if (!config_in["terminate window"].contains("key")) {
-			config_out["terminate window"]["key"] = 81; // 81 == Q
+			config_out["terminate window"]["key"] = SerializeKey(81); // 81 == Q
 			recreate_conf = true;
 		}
-
-		/*============================
-		 Парсинг клавиш из конфига
-		============================*/
-		// Swap Vdesktops
-		if (config_out["swap desktops"]["modifiers"].is_array()) {
-			config_out["swap desktops"]["modifiers"] = ParseModifiers(config_out["swap desktops"]["modifiers"]);
-		}
-
-		// Swap window to Vdesktops
-		if (config_out["swap window to desktop"]["modifiers"].is_array()) {
-			config_out["swap window to desktop"]["modifiers"] = ParseModifiers(config_out["swap window to desktop"]["modifiers"]);
-		}
-
-		// Close window
-		if (config_out["close window"]["modifiers"].is_array()) {
-			config_out["close window"]["modifiers"] = ParseModifiers(config_out["close window"]["modifiers"]);
-		}
-		if (config_out["close window"]["key"].is_number_integer()) {
-		}
-		else if (config_out["close window"]["key"].is_string()) {
-			config_out["close window"]["key"] = ParseKey(config_out["close window"]["key"]);
-		}
-
-		// Terminate window
-		if (config_out["terminate window"]["modifiers"].is_array()) {
-			config_out["terminate window"]["modifiers"] = ParseModifiers(config_out["terminate window"]["modifiers"]);
-		}
-		if (config_out["terminate window"]["key"].is_number_integer()) {
-		}
-		else if (config_out["terminate window"]["key"].is_string()) {
-			config_out["terminate window"]["key"] = ParseKey(config_out["terminate window"]["key"]);
-		}
-
 
 		if (recreate_conf) {
 			std::ofstream file_out(filename);
@@ -188,18 +186,18 @@ json config(std::string filename) {
 		ЗАПИСЬ КОНФИГА В ФАЙЛ (если его нет)
 		====================================*/
 		config_out["swap desktops"]["enabled"] = 1;
-		config_out["swap desktops"]["modifiers"] = 1;
+		config_out["swap desktops"]["modifiers"] = SerializeModifiers(1);
 
 		config_out["swap window to desktop"]["enabled"] = 1;
-		config_out["swap window to desktop"]["modifiers"] = 5;
+		config_out["swap window to desktop"]["modifiers"] = SerializeModifiers(5);
 
 		config_out["close window"]["enabled"] = 1;
-		config_out["close window"]["modifiers"] = 5;
-		config_out["close window"]["key"] = 81; // 81 == Q
+		config_out["close window"]["modifiers"] = SerializeModifiers(5);
+		config_out["close window"]["key"] = SerializeKey('Q'); // 81 == Q
 
 		config_out["terminate window"]["enabled"] = 0;
-		config_out["terminate window"]["modifiers"] = 7;
-		config_out["terminate window"]["key"] = 81; // 81 == Q
+		config_out["terminate window"]["modifiers"] = SerializeModifiers(7);
+		config_out["terminate window"]["key"] = SerializeKey('Q'); // 81 == Q
 
 
 		std::ofstream file_out(filename);
@@ -212,6 +210,38 @@ json config(std::string filename) {
 			MessageBoxW(NULL, L"Error", L"Config create error!", MB_OK);
 			return 1;
 		}
+	}
+	/*============================
+		 Парсинг клавиш из конфига
+		============================*/
+		// Swap Vdesktops
+	if (config_out["swap desktops"]["modifiers"].is_array()) {
+		config_out["swap desktops"]["modifiers"] = ParseModifiers(config_out["swap desktops"]["modifiers"]);
+	}
+
+	// Swap window to Vdesktops
+	if (config_out["swap window to desktop"]["modifiers"].is_array()) {
+		config_out["swap window to desktop"]["modifiers"] = ParseModifiers(config_out["swap window to desktop"]["modifiers"]);
+	}
+
+	// Close window
+	if (config_out["close window"]["modifiers"].is_array()) {
+		config_out["close window"]["modifiers"] = ParseModifiers(config_out["close window"]["modifiers"]);
+	}
+	if (config_out["close window"]["key"].is_number_integer()) {
+	}
+	else if (config_out["close window"]["key"].is_string()) {
+		config_out["close window"]["key"] = ParseKey(config_out["close window"]["key"]);
+	}
+
+	// Terminate window
+	if (config_out["terminate window"]["modifiers"].is_array()) {
+		config_out["terminate window"]["modifiers"] = ParseModifiers(config_out["terminate window"]["modifiers"]);
+	}
+	if (config_out["terminate window"]["key"].is_number_integer()) {
+	}
+	else if (config_out["terminate window"]["key"].is_string()) {
+		config_out["terminate window"]["key"] = ParseKey(config_out["terminate window"]["key"]);
 	}
 	return config_out;
 }
